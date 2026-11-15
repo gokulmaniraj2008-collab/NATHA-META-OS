@@ -34,6 +34,21 @@ async function decryptToken(value, env) {
 }
 function redirect(params) { const u = new URL(SITE_URL); for (const [k,v] of Object.entries(params)) u.searchParams.set(k, String(v)); return Response.redirect(u.toString(), 302); }
 function hex(bytes) { return [...new Uint8Array(bytes)].map(x => x.toString(16).padStart(2,"0")).join(""); }
+async function providerJson(response) {
+  const raw = await response.text();
+  try { return raw ? JSON.parse(raw) : {}; }
+  catch { return { parse_error: true, response_length: raw.length }; }
+}
+function providerErrorMeta(data) {
+  const error = data?.error && typeof data.error === "object" ? data.error : data;
+  return {
+    error_type: error?.error_type || error?.type || null,
+    error_code: error?.code || null,
+    error_subcode: error?.error_subcode || null,
+    error_message: typeof (error?.message || error?.error_message) === "string" ? String(error.message || error.error_message).slice(0,240) : null,
+    invalid_json: Boolean(data?.parse_error)
+  };
+}
 async function verifySignature(body, signature, secret) {
   if (!signature?.startsWith("sha256=") || !secret) return false;
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -65,7 +80,7 @@ async function startOAuth(request, env) {
   url.searchParams.set("scope", IG_SCOPES.join(","));
   url.searchParams.set("state", state);
   url.searchParams.set("enable_fb_login", "0");
-  url.searchParams.set("force_authentication", "1");
+  url.searchParams.set("force_reauth", "true");
   return json({ authorization_url: url.toString() });
 }
 async function finishOAuth(request, env) {
@@ -80,20 +95,41 @@ async function finishOAuth(request, env) {
   const form = new FormData();
   form.set("client_id", env.INSTAGRAM_APP_ID); form.set("client_secret", env.INSTAGRAM_APP_SECRET);
   form.set("grant_type", "authorization_code"); form.set("redirect_uri", CALLBACK_URL); form.set("code", code);
+  if (saved.redirect_uri !== CALLBACK_URL) {
+    console.error("instagram_oauth_failure", JSON.stringify({ stage:"state_validation", reason:"redirect_uri_mismatch" }));
+    return redirect({ instagram_oauth:"error", reason:"redirect_uri_mismatch" });
+  }
   const shortResponse = await fetch("https://api.instagram.com/oauth/access_token", { method: "POST", body: form });
-  const shortData = await shortResponse.json(); if (!shortResponse.ok || !shortData.access_token) { console.error("instagram_oauth_failure", JSON.stringify({ stage:"short_token_exchange", status:shortResponse.status, error_type:shortData?.error_type || shortData?.type || null, error_code:shortData?.code || null, error_message:shortData?.error_message || shortData?.error?.message || shortData?.error || null })); return redirect({ instagram_oauth: "error", reason: "token_exchange" }); }
+  const shortData = await providerJson(shortResponse);
+  if (!shortResponse.ok || typeof shortData.access_token !== "string" || !shortData.access_token) {
+    console.error("instagram_oauth_failure", JSON.stringify({ stage:"short_token_exchange", status:shortResponse.status, ...providerErrorMeta(shortData) }));
+    return redirect({ instagram_oauth: "error", reason: "token_exchange" });
+  }
   const longUrl = new URL("https://graph.instagram.com/access_token");
-  longUrl.searchParams.set("grant_type", "ig_exchange_token"); longUrl.searchParams.set("client_secret", env.INSTAGRAM_APP_SECRET); longUrl.searchParams.set("access_token", shortData.access_token);
-  const longResponse = await fetch(longUrl), longData = await longResponse.json();
-  if (!longResponse.ok || !longData.access_token) { console.error("instagram_oauth_failure", JSON.stringify({ stage:"long_token_exchange", status:longResponse.status, error_type:longData?.error_type || longData?.type || null, error_code:longData?.code || null, error_message:longData?.error?.message || longData?.error_message || null })); return redirect({ instagram_oauth: "error", reason: "long_token_exchange" }); }
+  longUrl.searchParams.set("grant_type", "ig_exchange_token");
+  longUrl.searchParams.set("client_secret", env.INSTAGRAM_APP_SECRET);
+  longUrl.searchParams.set("access_token", shortData.access_token);
+  const longResponse = await fetch(longUrl), longData = await providerJson(longResponse);
+  if (!longResponse.ok || typeof longData.access_token !== "string" || !longData.access_token) {
+    console.error("instagram_oauth_failure", JSON.stringify({ stage:"long_token_exchange", status:longResponse.status, ...providerErrorMeta(longData) }));
+    return redirect({ instagram_oauth: "error", reason: "long_token_exchange" });
+  }
   const accessToken = longData.access_token;
   const profileUrl = new URL("https://graph.instagram.com/" + API_VERSION + "/me");
-  profileUrl.searchParams.set("fields", "user_id,username"); profileUrl.searchParams.set("access_token", accessToken);
-  const profileResponse = await fetch(profileUrl), profile = await profileResponse.json();
-  if (!profileResponse.ok || !(profile.user_id || profile.id)) { console.error("instagram_oauth_failure", JSON.stringify({ stage:"profile_lookup", status:profileResponse.status, error_type:profile?.error?.type || null, error_code:profile?.error?.code || null, error_message:profile?.error?.message || null, response_fields:Object.keys(profile || {}) })); return redirect({ instagram_oauth: "error", reason: "profile_lookup" }); }
+  profileUrl.searchParams.set("fields", "user_id,username");
+  profileUrl.searchParams.set("access_token", accessToken);
+  const profileResponse = await fetch(profileUrl), profile = await providerJson(profileResponse);
+  if (!profileResponse.ok || !(profile.user_id || profile.id)) {
+    console.error("instagram_oauth_failure", JSON.stringify({ stage:"profile_lookup", status:profileResponse.status, ...providerErrorMeta(profile), response_fields:Object.keys(profile || {}) }));
+    return redirect({ instagram_oauth: "error", reason: "profile_lookup" });
+  }
   const instagramId = String(profile.user_id || profile.id), encrypted = await encryptToken(accessToken, env);
   const existing = await db("natha_instagram_accounts?select=id&organization_id=eq." + encodeURIComponent(saved.organization_id) + "&instagram_user_id=eq." + encodeURIComponent(instagramId) + "&limit=1", env);
-  const row = { organization_id: saved.organization_id, instagram_user_id: instagramId, username: profile.username || instagramId, status: "connected", token_ciphertext: encrypted, token_expires_at: new Date(Date.now()+(Number(longData.expires_in)||5184000)*1000).toISOString(), granted_scopes: IG_SCOPES, connected_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+  const grantedScopes = Array.isArray(shortData.permissions) && shortData.permissions.length
+    ? shortData.permissions.filter(scope => typeof scope === "string")
+    : IG_SCOPES;
+  const expiresIn = Number(longData.expires_in);
+  const row = { organization_id: saved.organization_id, instagram_user_id: instagramId, username: profile.username || instagramId, status: "connected", token_ciphertext: encrypted, token_expires_at: new Date(Date.now()+(Number.isFinite(expiresIn) && expiresIn > 0 ? expiresIn : 5184000)*1000).toISOString(), granted_scopes: grantedScopes, connected_at: new Date().toISOString(), updated_at: new Date().toISOString() };
   if (existing?.length) await db("natha_instagram_accounts?id=eq." + encodeURIComponent(existing[0].id), env, { method: "PATCH", body: JSON.stringify(row) });
   else await db("natha_instagram_accounts", env, { method: "POST", body: JSON.stringify(row) });
   return redirect({ instagram_oauth: "connected", accounts: 1 });
