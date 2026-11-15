@@ -196,7 +196,7 @@ function App(){
  };
  const logout=async()=>{if(session)await signOut(session);setSession(null);setUser(null);setOrganizationId("");setWorkspace(emptyWorkspace);setSection("Overview");};
  if(loading)return <div className="auth-shell"><div className="auth-loading"><span className="os-mark"><Command size={19}/></span><p>Opening your secure workspace…</p></div></div>;
- if(!session||!user)return <AuthGate onAuthenticated={activate}/ >;
+ if(!session||!user)return <AuthGate onAuthenticated={activate}/>;
 
  return <div className="os-shell">
   <aside className={mobile?"os-sidebar open":"os-sidebar"}>
