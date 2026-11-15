@@ -144,7 +144,7 @@ async function sendApprovedDm(request, env, approvalId) {
   const claimed = await db("natha_approvals?id=eq."+encodeURIComponent(approvalId)+"&status=eq.approved&select=id",env,{method:"PATCH",body:JSON.stringify({status:"sending",reviewed_by:user.id,reviewed_at:new Date().toISOString()})});
   if (!claimed?.length) return json({error:"This reply is already being processed or is no longer approved."},409);
   try {
-    const accounts = await db("natha_instagram_accounts?select=id,instagram_user_id,token_ciphertext,token_expires_at& id=eq.".replace(" ","")+encodeURIComponent(approval.instagram_account_id)+"&organization_id=eq."+encodeURIComponent(approval.organization_id)+"&status=eq.connected&limit=1",env);
+    const accounts = await db("natha_instagram_accounts?select=id,instagram_user_id,token_ciphertext,token_expires_at&id=eq."+encodeURIComponent(approval.instagram_account_id)+"&organization_id=eq."+encodeURIComponent(approval.organization_id)+"&status=eq.connected&limit=1",env);
     const account = accounts?.[0]; if (!account?.token_ciphertext) throw new Error("Connected Instagram token is unavailable.");
     if (account.token_expires_at && new Date(account.token_expires_at).getTime() <= Date.now()) throw new Error("Instagram access token has expired. Reconnect the account.");
     const token = await decryptToken(account.token_ciphertext,env);
