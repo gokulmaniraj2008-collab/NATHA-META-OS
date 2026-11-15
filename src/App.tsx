@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Dashboard from "./Dashboard";
 import {
   ArrowRight, ArrowUpRight, Bot, Check, ChevronRight, CircleHelp,
   Command, Instagram, LayoutDashboard, LockKeyhole, Menu, MessageCircle,
@@ -132,29 +133,7 @@ function App() {
           <h2>Make every conversation<br /><span>count.</span></h2>
           <button className="button button-primary" onClick={openDashboard}>Enter NATHA META OS <ArrowRight size={17} /></button>
         </section>
-      </main> : <main className="dashboard-page">
-        <div className="dashboard-heading"><div><div className="eyebrow">WORKSPACE PREVIEW</div><h1>Your command<br /><span>center.</span></h1><p>This is an early interface preview. Sign-in and live Instagram connection are not enabled yet.</p></div><div className="preview-pill"><span className="pulse" /> PREVIEW MODE</div></div>
-        <div className="dashboard-layout">
-          <aside className="side-panel">
-            <div className="side-label">WORKSPACE</div>
-            <button className="side-link active"><LayoutDashboard size={17} /> Overview</button>
-            <button className="side-link" onClick={() => showNotice("Messaging will be enabled after secure account connection is implemented.")}><MessageCircle size={17} /> Conversations</button>
-            <button className="side-link" onClick={() => showNotice("Instagram connection will be added through Meta OAuth in a later phase.")}><Instagram size={17} /> Instagram accounts</button>
-            <button className="side-link" onClick={() => showNotice("Assistant settings are part of the next dashboard phase.")}><Bot size={17} /> AI assistant</button>
-            <div className="side-help"><CircleHelp size={17} /><span>Need help?<small>Setup guide coming soon</small></span></div>
-          </aside>
-          <div className="dashboard-main">
-            <div className="welcome-row"><div><h2>Welcome to your workspace</h2><p>Your business overview will appear here.</p></div><div className="welcome-actions"><div className={`backend-status ${backendStatus}`}><span className="status-dot" />{backendStatus === "checking" ? "Checking backend…" : backendStatus === "online" ? (aiEnabled ? "NATHA AI online" : "Backend online · AI unavailable") : "Backend offline"}</div><button className="button button-small button-outline" onClick={() => void checkBackend()} disabled={backendStatus === "checking"}>Refresh</button><div className="avatar">N</div></div></div>
-            <div className="stat-grid">
-              <div className="stat-card"><span>CONNECTED ACCOUNTS</span><strong>—</strong><small>Not connected yet</small><Instagram /></div>
-              <div className="stat-card"><span>OPEN CONVERSATIONS</span><strong>—</strong><small>Waiting for setup</small><MessageSquareText /></div>
-              <div className="stat-card"><span>AI REPLIES</span><strong>—</strong><small>Not active yet</small><Zap /></div>
-            </div>
-            <div className="connect-card"><div className="connect-art"><Instagram size={30} /></div><div className="connect-content"><div className="eyebrow">YOUR FIRST STEP</div><h3>Connect an Instagram account</h3><p>Secure account authorization is not active in this preview. We'll add Meta OAuth and customer-specific token protection before enabling this action.</p><button className="button button-primary" onClick={() => showNotice("Meta OAuth is planned for Phase 3. No account has been connected.")}>Connection coming soon <LockKeyhole size={15} /></button></div></div>
-            <div className="activity-card"><div><h3>Workspace activity</h3><p>Updates will appear here once your account is connected.</p></div><span className="activity-empty"><Users size={19} /> No activity yet</span></div>
-          </div>
-        </div>
-      </main>}
+      </main> : <Dashboard onBack={() => setView("home")} />}
 
       <footer className="footer"><a className="brand" href="#" onClick={() => setView("home")}><span className="brand-mark"><Command size={16} /></span><span>NATHA<span className="brand-light"> META OS</span></span></a><span>Intelligent conversations. Built with control.</span><span>© 2026 NATHA META OS</span></footer>
       {notice && <div className="toast"><ShieldCheck size={17} />{notice}<button onClick={() => setNotice("")} aria-label="Dismiss"><X size={15} /></button></div>}
