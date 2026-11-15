@@ -1,165 +1,64 @@
 import { useEffect, useState } from "react";
-import {
-  ArrowRight, ArrowUpRight, Bot, Check, ChevronRight, CircleHelp,
-  Command, Instagram, LayoutDashboard, LockKeyhole, Menu, MessageCircle,
-  MessageSquareText, Plug, ShieldCheck, Sparkles, Users, X, Zap
-} from "lucide-react";
+import { Activity, Bot, CheckCircle2, ChevronRight, CircleHelp, Command, FileImage, Gauge, Instagram, LayoutDashboard, LockKeyhole, Menu, MessageCircle, MessageSquareText, Settings, ShieldCheck, Sparkles, Users, X, Zap, Clock3, BarChart3, Send, Plug } from "lucide-react";
 
-type View = "home" | "dashboard";
+type Section = "Overview" | "Instagram accounts" | "DM Inbox" | "AI Assistant" | "Approval Centre" | "Content Studio" | "Analytics" | "System Monitor" | "Settings";
 type BackendStatus = "checking" | "online" | "offline";
-const API_BASE_URL = "https://natha-ai.gokulmaniraj2008.workers.dev";
-
-function App() {
-  const [view, setView] = useState<View>("home");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [notice, setNotice] = useState("");
-  const [backendStatus, setBackendStatus] = useState<BackendStatus>("checking");
-  const [aiEnabled, setAiEnabled] = useState(false);
-
-  const checkBackend = async () => {
-    setBackendStatus("checking");
-    try {
-      const response = await fetch(`${API_BASE_URL}/health`);
-      if (!response.ok) throw new Error("Backend health check failed");
-      const data = await response.json();
-      if (data?.bot !== "NATHA AI" || data?.status !== "online") throw new Error("Unexpected backend response");
-      setAiEnabled(Boolean(data.ai_enabled));
-      setBackendStatus("online");
-    } catch {
-      setAiEnabled(false);
-      setBackendStatus("offline");
-    }
-  };
-
-  useEffect(() => {
-    if (view === "dashboard") void checkBackend();
-  }, [view]);
-
-  const openDashboard = () => {
-    setView("dashboard");
-    setMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const showNotice = (message: string) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(""), 3600);
-  };
-
-  return (
-    <div className="app-shell">
-      <header className="topbar">
-        <a className="brand" href="#" onClick={() => setView("home")}>
-          <span className="brand-mark"><Command size={19} /></span>
-          <span>NATHA<span className="brand-light"> META OS</span></span>
-        </a>
-        <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">
-          {menuOpen ? <X /> : <Menu />}
-        </button>
-        <nav className={menuOpen ? "nav-links nav-open" : "nav-links"}>
-          {view === "home" ? <>
-            <a href="#platform" onClick={() => setMenuOpen(false)}>Platform</a>
-            <a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
-            <a href="#security" onClick={() => setMenuOpen(false)}>Security</a>
-          </> : <button className="nav-text" onClick={() => setView("home")}>Back to website</button>}
-          <button className="button button-small button-outline" onClick={openDashboard}>Open dashboard <ArrowUpRight size={15} /></button>
-        </nav>
-      </header>
-
-      {view === "home" ? <main>
-        <section className="hero">
-          <div className="hero-copy">
-            <div className="eyebrow"><span className="pulse" /> THE CONVERSATION OPERATING SYSTEM</div>
-            <h1>Your Instagram.<br /><span>In intelligent hands.</span></h1>
-            <p className="hero-lead">Turn Instagram conversations into meaningful customer relationships. One workspace for smarter replies, organized messages, and business growth.</p>
-            <div className="hero-actions">
-              <button className="button button-primary" onClick={openDashboard}>Explore workspace <ArrowRight size={17} /></button>
-              <a className="button button-ghost" href="#platform">Discover the platform <ChevronRight size={17} /></a>
-            </div>
-            <div className="trust-line"><ShieldCheck size={16} /> Built around official Meta authorization</div>
-          </div>
-          <div className="hero-visual">
-            <div className="orbit orbit-one" /><div className="orbit orbit-two" />
-            <div className="glow" />
-            <div className="core-card">
-              <div className="core-top"><span className="live-dot" /> NATHA AI <span className="core-tag">ASSISTANT</span></div>
-              <div className="core-icon"><Bot size={36} /></div>
-              <div className="core-title">Conversations, connected.</div>
-              <div className="core-sub">Listen · Understand · Respond</div>
-              <div className="core-bottom"><span><span className="tiny-dot" /> System concept</span><Sparkles size={15} /></div>
-            </div>
-            <div className="float-chip chip-left"><Instagram size={17} /><span>Instagram</span><Check size={14} /></div>
-            <div className="float-chip chip-right"><MessageCircle size={17} /><span>Smart replies</span></div>
-          </div>
-        </section>
-
-        <section className="metrics-strip">
-          <div><strong>ONE</strong><span>Unified workspace</span></div>
-          <div><strong>AI</strong><span>Conversation assistance</span></div>
-          <div><strong>YOU</strong><span>Always in control</span></div>
-        </section>
-
-        <section className="section" id="platform">
-          <div className="section-heading">
-            <div className="eyebrow">A CLEARER WAY TO CONNECT</div>
-            <h2>Everything starts with<br /><span>a better conversation.</span></h2>
-            <p>Tools designed to help businesses manage Instagram conversations responsibly and efficiently.</p>
-          </div>
-          <div className="feature-grid">
-            <article className="feature-card"><div className="feature-icon violet"><Bot /></div><h3>AI conversation assistant</h3><p>Help craft useful replies with language-aware AI assistance. Keep your business voice at the center.</p><span className="feature-number">01 / ASSIST</span></article>
-            <article className="feature-card"><div className="feature-icon blue"><MessageSquareText /></div><h3>Unified message workspace</h3><p>A focused place to review conversations, understand context, and plan customer responses.</p><span className="feature-number">02 / ORGANIZE</span></article>
-            <article className="feature-card"><div className="feature-icon green"><Plug /></div><h3>Official account connection</h3><p>Connect eligible professional accounts through Meta's authorization flow. Each business owns its connection.</p><span className="feature-number">03 / CONNECT</span></article>
-          </div>
-        </section>
-
-        <section className="workflow-section" id="how-it-works">
-          <div className="workflow-copy"><div className="eyebrow">SIMPLE BY DESIGN</div><h2>From first hello<br />to lasting loyalty.</h2><p>NATHA META OS is being built in careful stages: secure account connection first, then useful automation with clear controls.</p><button className="button button-primary" onClick={openDashboard}>Preview the workspace <ArrowRight size={16} /></button></div>
-          <div className="steps">
-            <div className="step"><span>01</span><div><h3>Connect your account</h3><p>Authorize your eligible Instagram professional account with Meta.</p></div><Instagram /></div>
-            <div className="step"><span>02</span><div><h3>Configure your assistant</h3><p>Set the tone, language, and response rules for your business.</p></div><Sparkles /></div>
-            <div className="step"><span>03</span><div><h3>Stay in control</h3><p>Review activity and choose how your customer conversations are handled.</p></div><ShieldCheck /></div>
-          </div>
-        </section>
-
-        <section className="security-section" id="security">
-          <div className="security-icon"><LockKeyhole size={25} /></div>
-          <div><div className="eyebrow">SECURITY IS A FOUNDATION</div><h2>Your account. Your permission. Your data.</h2><p>Each customer will connect their own account using Meta authorization. Credentials will be handled by the secure backend, never placed in this public source repository.</p></div>
-          <div className="security-points"><span><Check size={15} /> Per-customer authorization</span><span><Check size={15} /> Protected server-side secrets</span><span><Check size={15} /> Clear control over automation</span></div>
-        </section>
-
-        <section className="cta-section">
-          <div className="eyebrow">THE NEXT ERA OF CUSTOMER CONVERSATIONS</div>
-          <h2>Make every conversation<br /><span>count.</span></h2>
-          <button className="button button-primary" onClick={openDashboard}>Enter NATHA META OS <ArrowRight size={17} /></button>
-        </section>
-      </main> : <main className="dashboard-page">
-        <div className="dashboard-heading"><div><div className="eyebrow">WORKSPACE PREVIEW</div><h1>Your command<br /><span>center.</span></h1><p>This is an early interface preview. Sign-in and live Instagram connection are not enabled yet.</p></div><div className="preview-pill"><span className="pulse" /> PREVIEW MODE</div></div>
-        <div className="dashboard-layout">
-          <aside className="side-panel">
-            <div className="side-label">WORKSPACE</div>
-            <button className="side-link active"><LayoutDashboard size={17} /> Overview</button>
-            <button className="side-link" onClick={() => showNotice("Messaging will be enabled after secure account connection is implemented.")}><MessageCircle size={17} /> Conversations</button>
-            <button className="side-link" onClick={() => showNotice("Instagram connection will be added through Meta OAuth in a later phase.")}><Instagram size={17} /> Instagram accounts</button>
-            <button className="side-link" onClick={() => showNotice("Assistant settings are part of the next dashboard phase.")}><Bot size={17} /> AI assistant</button>
-            <div className="side-help"><CircleHelp size={17} /><span>Need help?<small>Setup guide coming soon</small></span></div>
-          </aside>
-          <div className="dashboard-main">
-            <div className="welcome-row"><div><h2>Welcome to your workspace</h2><p>Your business overview will appear here.</p></div><div className="welcome-actions"><div className={`backend-status ${backendStatus}`}><span className="status-dot" />{backendStatus === "checking" ? "Checking backend…" : backendStatus === "online" ? (aiEnabled ? "NATHA AI online" : "Backend online · AI unavailable") : "Backend offline"}</div><button className="button button-small button-outline" onClick={() => void checkBackend()} disabled={backendStatus === "checking"}>Refresh</button><div className="avatar">N</div></div></div>
-            <div className="stat-grid">
-              <div className="stat-card"><span>CONNECTED ACCOUNTS</span><strong>—</strong><small>Not connected yet</small><Instagram /></div>
-              <div className="stat-card"><span>OPEN CONVERSATIONS</span><strong>—</strong><small>Waiting for setup</small><MessageSquareText /></div>
-              <div className="stat-card"><span>AI REPLIES</span><strong>—</strong><small>Not active yet</small><Zap /></div>
-            </div>
-            <div className="connect-card"><div className="connect-art"><Instagram size={30} /></div><div className="connect-content"><div className="eyebrow">YOUR FIRST STEP</div><h3>Connect an Instagram account</h3><p>Secure account authorization is not active in this preview. We'll add Meta OAuth and customer-specific token protection before enabling this action.</p><button className="button button-primary" onClick={() => showNotice("Meta OAuth is planned for Phase 3. No account has been connected.")}>Connection coming soon <LockKeyhole size={15} /></button></div></div>
-            <div className="activity-card"><div><h3>Workspace activity</h3><p>Updates will appear here once your account is connected.</p></div><span className="activity-empty"><Users size={19} /> No activity yet</span></div>
-          </div>
-        </div>
-      </main>}
-
-      <footer className="footer"><a className="brand" href="#" onClick={() => setView("home")}><span className="brand-mark"><Command size={16} /></span><span>NATHA<span className="brand-light"> META OS</span></span></a><span>Intelligent conversations. Built with control.</span><span>© 2026 NATHA META OS</span></footer>
-      {notice && <div className="toast"><ShieldCheck size={17} />{notice}<button onClick={() => setNotice("")} aria-label="Dismiss"><X size={15} /></button></div>}
-    </div>
-  );
+const API = "https://natha-ai.gokulmaniraj2008.workers.dev";
+const nav: {name:Section; icon:typeof LayoutDashboard; desc:string}[] = [
+ {name:"Overview",icon:LayoutDashboard,desc:"Your workspace at a glance"},
+ {name:"Instagram accounts",icon:Instagram,desc:"Connect and manage accounts"},
+ {name:"DM Inbox",icon:MessageCircle,desc:"Review customer conversations"},
+ {name:"AI Assistant",icon:Bot,desc:"Configure response behaviour"},
+ {name:"Approval Centre",icon:CheckCircle2,desc:"Review before anything is sent"},
+ {name:"Content Studio",icon:FileImage,desc:"Prepare posts and campaigns"},
+ {name:"Analytics",icon:BarChart3,desc:"Measure account performance"},
+ {name:"System Monitor",icon:Activity,desc:"Backend and integration health"},
+ {name:"Settings",icon:Settings,desc:"Workspace preferences and security"}
+];
+function App(){
+ const [section,setSection]=useState<Section>("Overview");
+ const [mobile,setMobile]=useState(false);
+ const [status,setStatus]=useState<BackendStatus>("checking");
+ const [ai,setAi]=useState(false);
+ const [notice,setNotice]=useState("");
+ const [approval,setApproval]=useState(true);
+ const notify=(s:string)=>{setNotice(s);window.setTimeout(()=>setNotice(""),4000)};
+ const check=async()=>{setStatus("checking");try{const r=await fetch(API+"/health");if(!r.ok)throw Error();const d=await r.json();if(d?.bot!=="NATHA AI"||d?.status!=="online")throw Error();setAi(Boolean(d.ai_enabled));setStatus("online")}catch{setStatus("offline");setAi(false)}};
+ useEffect(()=>{void check()},[]);
+ const select=(s:Section)=>{setSection(s);setMobile(false)};
+ const current=nav.find(n=>n.name===section)!;
+ return <div className="os-shell">
+  <aside className={mobile?"os-sidebar open":"os-sidebar"}>
+   <div className="os-brand"><span className="os-mark"><Command size={19}/></span><span>NATHA <i>META OS</i></span><button className="os-close" onClick={()=>setMobile(false)}><X/></button></div>
+   <div className="os-workspace"><span className="os-avatar">G</span><span><b>GKFXL Workspace</b><small>Instagram operations</small></span><ChevronRight size={15}/></div>
+   <div className="os-nav-label">WORKSPACE</div>
+   {nav.slice(0,7).map(n=><button key={n.name} className={section===n.name?"os-nav active":"os-nav"} onClick={()=>select(n.name)}><n.icon size={17}/>{n.name}{n.name==="Approval Centre"?<em>Manual</em>:null}</button>)}
+   <div className="os-nav-label">ADMINISTRATION</div>
+   {nav.slice(7).map(n=><button key={n.name} className={section===n.name?"os-nav active":"os-nav"} onClick={()=>select(n.name)}><n.icon size={17}/>{n.name}</button>)}
+   <div className="os-sidebar-bottom"><ShieldCheck size={17}/><span><b>Approval-first mode</b><small>Sending requires your approval</small></span></div>
+  </aside>
+  {mobile&&<button className="os-scrim" onClick={()=>setMobile(false)} aria-label="Close menu"/>}
+  <main className="os-main">
+   <header className="os-top"><button className="os-menu" onClick={()=>setMobile(true)}><Menu/></button><div className="os-breadcrumb">NATHA META OS <span>/</span> {section}</div><div className="os-top-right"><span className={"os-status "+status}><i/>{status==="checking"?"Checking":status==="online"?"Backend online":"Backend offline"}</span><button className="os-help" onClick={()=>notify("Setup guidance will appear here as integrations are enabled.")}><CircleHelp size={18}/></button><span className="os-avatar">G</span></div></header>
+   <div className="os-content">
+    <div className="os-page-head"><div><div className="os-kicker">GKFXL · CONTROL CENTER</div><h1>{section}</h1><p>{current.desc}</p></div><div className="os-live-pill"><span/> WORKSPACE PREVIEW</div></div>
+    {section==="Overview"?<>
+      <div className="os-welcome"><div><div className="os-kicker">YOUR BUSINESS, ONE WORKSPACE</div><h2>Good to see you.</h2><p>Connect your Instagram account to start managing conversations and content.</p></div><button className="os-primary" onClick={()=>select("Instagram accounts")}><Instagram size={17}/> Connect Instagram</button></div>
+      <div className="os-stats">{[{label:"Connected accounts",value:"—",sub:"Awaiting Meta OAuth",icon:Instagram},{label:"Open conversations",value:"—",sub:"No live inbox data yet",icon:MessageCircle},{label:"Pending approvals",value:"—",sub:"Approval queue not connected",icon:CheckCircle2},{label:"AI replies sent",value:"—",sub:"No sending without approval",icon:Bot}].map(x=><div className="os-stat" key={x.label}><div>{x.label}<x.icon size={17}/></div><strong>{x.value}</strong><small>{x.sub}</small></div>)}</div>
+      <div className="os-grid"><section className="os-panel"><div className="os-panel-head"><div><h3>Get started</h3><p>Complete these steps to activate your workspace</p></div><span className="os-count">0 / 4</span></div>{[{t:"Connect Instagram with Meta",d:"Authorize GKFXL securely",ic:Instagram,s:"Instagram accounts" as Section},{t:"Configure your AI assistant",d:"Set tone, language and reply rules",ic:Bot,s:"AI Assistant" as Section},{t:"Review approval settings",d:"Keep sending under your control",ic:ShieldCheck,s:"Approval Centre" as Section},{t:"Prepare your first post",d:"Create content for review",ic:FileImage,s:"Content Studio" as Section}].map(x=><button className="os-task" key={x.t} onClick={()=>select(x.s)}><span><x.ic size={18}/></span><div><b>{x.t}</b><small>{x.d}</small></div><ChevronRight size={17}/></button>)}</section><section className="os-panel"><div className="os-panel-head"><div><h3>System health</h3><p>Live checks from your backend</p></div><button className="os-refresh" onClick={()=>void check()}>Refresh</button></div><div className="os-health-row"><span>Cloudflare Worker</span><b className={status}>{status==="online"?"Online":status==="checking"?"Checking":"Offline"}</b></div><div className="os-health-row"><span>NATHA AI</span><b>{ai?"Enabled":"Not confirmed"}</b></div><div className="os-health-row"><span>Meta OAuth</span><b className="pending">Not connected</b></div><div className="os-health-row"><span>Supabase account link</span><b className="pending">Not verified</b></div><p className="os-note">Statuses are only shown when verified; unavailable integrations are not presented as active.</p></section></div>
+    </>:null}
+    {section==="Instagram accounts"? <div className="os-panel os-feature"><span className="os-feature-icon"><Instagram size={27}/></span><div className="os-kicker">OFFICIAL META AUTHORIZATION</div><h2>Connect your Instagram professional account</h2><p>Use Meta Login to authorize GKFXL. The connection will be completed only after the OAuth callback, state validation, token exchange and secure storage are implemented and tested.</p><div className="os-health-row"><span>Account connection</span><b className="pending">Not connected</b></div><div className="os-health-row"><span>OAuth callback</span><b className="pending">Implementation pending</b></div><button className="os-primary" disabled onClick={()=>notify("OAuth is not ready yet. This button stays disabled until the callback is tested.")}><LockKeyhole size={16}/> Connect securely · Coming soon</button><p className="os-note">Never paste your App Secret or access token into this page or a public repository.</p></div>:null}
+    {section==="DM Inbox"? <div className="os-panel os-empty"><MessageSquareText size={32}/><h2>Your conversations will appear here</h2><p>Inbox access requires a connected Instagram account and approved messaging permissions.</p><button className="os-secondary" onClick={()=>select("Instagram accounts")}>Set up Instagram first</button></div>:null}
+    {section==="AI Assistant"? <div className="os-grid"><section className="os-panel"><h3>Assistant configuration</h3><p>Define how NATHA should help with customer messages.</p><div className="os-health-row"><span>Backend AI status</span><b>{ai?"Enabled":"Not confirmed"}</b></div><div className="os-health-row"><span>Auto-send</span><b className="pending">Disabled by default</b></div><div className="os-health-row"><span>Human approval</span><b className="good">Required</b></div></section><section className="os-panel"><h3>Response rules</h3><p>These controls will become editable when the assistant settings API is connected.</p><div className="os-note">No automatic replies are enabled from this dashboard preview.</div></section></div>:null}
+    {section==="Approval Centre"? <div className="os-panel os-feature"><span className="os-feature-icon"><ShieldCheck size={27}/></span><div className="os-kicker">HUMAN-IN-THE-LOOP CONTROL</div><h2>Nothing goes out without your approval</h2><p>Review proposed DM replies and posts before sending or publishing. This preview does not yet load live approval records.</p><label className="os-toggle-row"><span><b>Require approval before sending</b><small>Keep automatic sending disabled until verified</small></span><input type="checkbox" checked={approval} onChange={e=>setApproval(e.target.checked)}/></label><div className="os-note">{approval?"Approval-first preference is enabled in this preview.":"This preview preference is off; backend enforcement is not configured."}</div></div>:null}
+    {section==="Content Studio"? <div className="os-panel os-empty"><FileImage size={32}/><h2>Create and review content</h2><p>Draft posts, attach media and send them to the approval queue. Publishing will remain disabled until Meta permissions and approval enforcement are ready.</p><button className="os-secondary" onClick={()=>select("Approval Centre")}>View approval controls</button></div>:null}
+    {section==="Analytics"? <div className="os-panel os-empty"><BarChart3 size={32}/><h2>Insights will appear here</h2><p>Account reach, engagement and content performance will load after Meta Insights permission is connected.</p></div>:null}
+    {section==="System Monitor"? <div className="os-panel"><h3>Integration status</h3><div className="os-health-row"><span>Cloudflare Worker health endpoint</span><b className={status}>{status==="online"?"Online":status==="checking"?"Checking":"Offline"}</b></div><div className="os-health-row"><span>AI feature flag</span><b>{ai?"Enabled":"Unavailable"}</b></div><div className="os-health-row"><span>Instagram OAuth</span><b className="pending">Not implemented</b></div><div className="os-health-row"><span>Supabase organization mapping</span><b className="pending">Not verified</b></div><button className="os-secondary" onClick={()=>void check()}>Run health check</button></div>:null}
+    {section==="Settings"? <div className="os-grid"><section className="os-panel"><h3>Workspace</h3><div className="os-health-row"><span>Workspace name</span><b>GKFXL</b></div><div className="os-health-row"><span>Mode</span><b>Preview</b></div><div className="os-health-row"><span>Publishing</span><b className="pending">Approval required</b></div></section><section className="os-panel"><h3>Security</h3><div className="os-health-row"><span>Secret handling</span><b className="good">Server-side only</b></div><div className="os-health-row"><span>Meta App ID</span><b>Configured (reported)</b></div><div className="os-health-row"><span>App Secret value</span><b className="pending">Not exposed / not verified</b></div></section></div>:null}
+    <footer className="os-footer"><span><Command size={14}/> NATHA META OS</span><span>Secure conversations · Your control</span><span>© 2026</span></footer>
+   </div>
+  </main>
+  {notice&&<div className="os-toast"><ShieldCheck size={17}/>{notice}<button onClick={()=>setNotice("")}><X size={15}/></button></div>}
+ </div>
 }
-
 export default App;
