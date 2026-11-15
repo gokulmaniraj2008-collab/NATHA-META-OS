@@ -78,6 +78,7 @@ function App(){
  const [draftCaption,setDraftCaption]=useState("");
  const [authMessage,setAuthMessage]=useState("");
  const [oauthBusy,setOauthBusy]=useState(false);
+ const [instagramReady,setInstagramReady]=useState(false);
 
  const notify=(value:string)=>{setNotice(value);window.setTimeout(()=>setNotice(""),4500);};
  const activate=useCallback(async(s:AuthSession)=>{
