@@ -219,7 +219,7 @@ function App(){
     {section==="Instagram accounts"&&<>
      <div className="os-panel os-feature"><span className="os-feature-icon"><Instagram size={27}/></span><div className="os-kicker">OFFICIAL META AUTHORIZATION</div><h2>Instagram professional accounts</h2><p>Connect your Instagram professional account securely using official Meta authorization. You will review and approve the permissions on Meta before returning here.</p>
       {workspace.accounts.length?workspace.accounts.map(a=><div className="os-health-row" key={a.id}><span>@{a.username}</span><b className={a.status==="connected"?"good":"pending"}>{a.status}</b></div>):<div className="os-empty-inline">No Instagram account is connected yet.</div>}
-      <button className="os-primary" onClick={()=>void connectInstagram()} disabled={oauthBusy}><LockKeyhole size={16}/>{oauthBusy?" Opening Meta…":" Connect with Meta"}</button>
+      <button className="os-primary" onClick={()=>void connectInstagram()} disabled={oauthBusy}><LockKeyhole size={16}/>{oauthBusy?" Opening Meta…":" Connect Instagram"}</button>
       <p className="os-note">Meta handles the secure authorization. NATHA stores the verified account connection server-side; outbound messages and publishing remain approval-first.</p>
      </div>
     </>}
