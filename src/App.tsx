@@ -33,7 +33,7 @@ const emptyWorkspace:Workspace={accounts:[],conversations:[],messages:[],approva
 function messageOf(error:unknown){return error instanceof Error?error.message:"Something went wrong. Please try again."}
 function stamp(value:string){return new Date(value).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"});}
 
-function AuthGate({onAuthenticated}:{onAuthenticated:(session:AuthSession)=>Promise<void>}){
+function AuthGate({onAuthenticated,onDemo}:{onAuthenticated:(session:AuthSession)=>Promise<void>;onDemo:()=>void}){
  const [mode,setMode]=useState<"signin"|"signup">("signin");
  const [email,setEmail]=useState("");
  const [password,setPassword]=useState("");
@@ -55,6 +55,8 @@ function AuthGate({onAuthenticated}:{onAuthenticated:(session:AuthSession)=>Prom
    {error&&<div className="auth-error" role="alert">{error}</div>}{info&&<div className="auth-info" role="status">{info}</div>}
    <button className="os-primary auth-submit" disabled={busy}>{busy?"Please wait…":mode==="signin"?"Sign in securely":"Create account"}</button>
   </form>
+  <button className="os-secondary auth-submit" type="button" onClick={onDemo}>Explore demo workspace</button>
+  <p className="os-note">Sample data only. Live actions are disabled in demo mode.</p>
   <button className="auth-switch" onClick={()=>{setMode(mode==="signin"?"signup":"signin");setError("");setInfo("");}}>{mode==="signin"?"New to NATHA? Create an account":"Already have an account? Sign in"}</button>
   <div className="auth-foot"><LockKeyhole size={14}/> Secure sign-in · No Instagram token stored in this browser</div>
  </div></div>;
@@ -64,6 +66,7 @@ function App(){
  const [section,setSection]=useState<Section>("Overview");
  const [mobile,setMobile]=useState(false);
  const [session,setSession]=useState<AuthSession|null>(null);
+ const [demoMode,setDemoMode]=useState(false);
  const [user,setUser]=useState<AuthUser|null>(null);
  const [organizationId,setOrganizationId]=useState("");
  const [workspace,setWorkspace]=useState<Workspace>(emptyWorkspace);
@@ -87,7 +90,7 @@ function App(){
  },[]);
 
  const refreshWorkspace=useCallback(async()=>{
-   if(!session||!organizationId)return;
+   if(demoMode||!session||!organizationId)return;
    setDataLoading(true);setError("");
    try{
     const filter={select:"*",organization_id:`eq.${organizationId}`};
@@ -102,10 +105,10 @@ function App(){
     const setting=settings[0];setRequireApproval(setting?.require_approval??true);setInstructions(setting?.instructions??"");
    }catch(err){setError(messageOf(err));}
    finally{setDataLoading(false);}
- },[session,organizationId]);
+ },[session,organizationId,demoMode]);
 
  useEffect(()=>{let active=true;(async()=>{try{const s=await getSession();if(s&&active)await activate(s);}catch(err){clearSession();if(active)setAuthMessage(messageOf(err));}finally{if(active)setLoading(false);}})();return()=>{active=false;};},[activate]);
- useEffect(()=>{if(session&&organizationId)void refreshWorkspace();},[session,organizationId,refreshWorkspace]);
+ useEffect(()=>{if(!demoMode&&session&&organizationId)void refreshWorkspace();},[session,organizationId,refreshWorkspace,demoMode]);
  useEffect(()=>{let active=true;fetch(backendUrl+"/health").then(r=>{if(!r.ok)throw Error();return r.json();}).then(d=>{if(active&&d?.bot==="NATHA AI"&&d?.status==="online")setBackend("online");else if(active)setBackend("offline");}).catch(()=>{if(active)setBackend("offline");});return()=>{active=false;};},[]);
  useEffect(()=>{const params=new URLSearchParams(window.location.search);const result=params.get("instagram_oauth");if(!result)return;if(result==="connected"){notify("Instagram account connected successfully.");void refreshWorkspace();}else{const reason=params.get("reason")||"unknown";setError("Instagram connection could not be completed ("+reason+"). Check the Meta app OAuth settings and try again.");}const clean=new URL(window.location.href);clean.searchParams.delete("instagram_oauth");clean.searchParams.delete("accounts");clean.searchParams.delete("reason");window.history.replaceState(window.history.state,"",clean.pathname+clean.search+clean.hash);},[]);
 
@@ -140,6 +143,7 @@ function App(){
  const activeMessages=workspace.messages.filter(m=>m.conversation_id===activeConversation?.id).slice().reverse();
 
  const reviewApproval=async(item:Approval,status:"approved"|"rejected")=>{
+  if(demoMode){setError("Demo mode is read-only. Sign in to review live approvals.");return;}
   if(!session||!user)return;
   try{
    const updated=await dbRequest<Approval[]>("natha_approvals",{id:`eq.${item.id}`,status:"eq.pending" },session,"PATCH",{status,reviewed_by:user.id,reviewed_at:new Date().toISOString()});
@@ -150,6 +154,7 @@ function App(){
  };
 
  const saveAssistant=async()=>{
+  if(demoMode){setError("Demo mode is read-only. Sign in to save settings.");return;}
   if(!session||!user)return;
   try{
    const current=workspace.settings[0];
@@ -160,16 +165,21 @@ function App(){
  };
 
  const createDraft=async(e:FormEvent)=>{
-  e.preventDefault();if(!session||!workspace.accounts[0])return;
+  e.preventDefault();if(demoMode){setError("Demo mode is read-only. Sign in to create a live draft.");return;}if(!session||!workspace.accounts[0])return;
   try{
    await dbRequest("natha_approvals",{select:"id"},session,"POST",{organization_id:organizationId,instagram_account_id:workspace.accounts[0].id,kind:"feed_post",payload:{caption:draftCaption.trim()},status:"pending",created_by:user?.id});
    setDraftCaption("");notify("Post draft added to the approval queue.");await refreshWorkspace();select("Approval Centre");
   }catch(err){setError(messageOf(err));}
  };
 
- const connectInstagram=async()=>{\n  if(!session||!organizationId)return;\n  setOauthBusy(true);setError("");\n  try{\n   const response=await fetch(backendUrl+"/oauth/start",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({organization_id:organizationId})});\n   const data=await response.json().catch(()=>({}));\n   if(!response.ok||!data.authorization_url)throw new Error(data.error||"Could not open Meta authorization.");\n   window.location.assign(data.authorization_url);\n  }catch(err){setError(messageOf(err));setOauthBusy(false);}\n };\n const logout=async()=>{if(session)await signOut(session);setSession(null);setUser(null);setOrganizationId("");setWorkspace(emptyWorkspace);setSection("Overview");};
+ const connectInstagram=async()=>{\n  if(demoMode){setError("Instagram connection is disabled in demo mode.");return;}\n  if(!session||!organizationId)return;\n  setOauthBusy(true);setError("");\n  try{\n   const response=await fetch(backendUrl+"/oauth/start",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({organization_id:organizationId})});\n   const data=await response.json().catch(()=>({}));\n   if(!response.ok||!data.authorization_url)throw new Error(data.error||"Could not open Meta authorization.");\n   window.location.assign(data.authorization_url);\n  }catch(err){setError(messageOf(err));setOauthBusy(false);}\n };\n const enterDemo=()=>{
+  setDemoMode(true);setSession(null);setUser({id:"demo-user",email:"demo@natha-meta-os.local"});setOrganizationId("demo-workspace");setSection("Overview");setSelectedConversation("demo-conversation");setInstructions("Reply in the customer’s language. Keep responses helpful and concise.");setRequireApproval(true);
+  const now=new Date().toISOString();
+  setWorkspace({accounts:[{id:"demo-account",username:"gkfxl_demo",instagram_user_id:"demo-ig",status:"connected"}],conversations:[{id:"demo-conversation",username:"sample_customer",ig_scoped_user_id:"demo-ig-user",status:"open",last_message_at:now}],messages:[{id:"demo-message-1",conversation_id:"demo-conversation",body:"Hi! Can you share more details about your services?",direction:"inbound",delivery_status:"received",created_at:now},{id:"demo-message-2",conversation_id:"demo-conversation",body:"Thanks for reaching out. Our team will be happy to help.",direction:"outbound",delivery_status:"sample",created_at:now}],approvals:[{id:"demo-approval",kind:"dm_reply",payload:{message:"Thanks for your interest! We’ll share the details shortly."},status:"pending",recipient_id:"demo-ig-user",created_at:now,instagram_account_id:"demo-account",conversation_id:"demo-conversation"}],settings:[{id:"demo-settings",auto_reply_enabled:false,require_approval:true,instructions:"Reply in the customer’s language. Keep responses helpful and concise."}]});
+ };
+ const logout=async()=>{if(session)await signOut(session);setDemoMode(false);setSession(null);setUser(null);setOrganizationId("");setWorkspace(emptyWorkspace);setSection("Overview");};
  if(loading)return <div className="auth-shell"><div className="auth-loading"><span className="os-mark"><Command size={19}/></span><p>Opening your secure workspace…</p></div></div>;
- if(!session||!user)return <AuthGate onAuthenticated={activate}/>;
+ if(!demoMode&&(!session||!user))return <AuthGate onAuthenticated={activate} onDemo={enterDemo}/>;
 
  return <div className="os-shell">
   <aside className={mobile?"os-sidebar open":"os-sidebar"}>
@@ -179,11 +189,11 @@ function App(){
    {nav.slice(0,7).map(n=><button key={n.name} className={section===n.name?"os-nav active":"os-nav"} onClick={()=>select(n.name)}><n.icon size={17}/>{n.name}{n.name==="Approval Centre"?<em>{pending.length}</em>:null}</button>)}
    <div className="os-nav-label">ADMINISTRATION</div>
    {nav.slice(7).map(n=><button key={n.name} className={section===n.name?"os-nav active":"os-nav"} onClick={()=>select(n.name)}><n.icon size={17}/>{n.name}</button>)}
-   <div className="os-sidebar-bottom"><ShieldCheck size={17}/><span><b>Approval-first mode</b><small>All outbound actions need review</small></span></div>
+   <div className="os-sidebar-bottom"><ShieldCheck size={17}/><span><b>{demoMode?"Read-only demo":"Approval-first mode"}</b><small>{demoMode?"Sample data · No live actions":"All outbound actions need review"}</small></span></div>
   </aside>
   {mobile&&<button className="os-scrim" onClick={()=>setMobile(false)} aria-label="Close menu"/>}
   <main className="os-main">
-   <header className="os-top"><button className="os-menu" onClick={()=>setMobile(true)} aria-label="Open menu"><Menu/></button><div className="os-breadcrumb">NATHA META OS <span>/</span> {section}</div><div className="os-top-right"><span className={"os-status "+backend}><i/>{backend==="checking"?"Checking":backend==="online"?"Backend online":"Backend offline"}</span><button className="os-help" onClick={()=>notify("Use the setup steps shown on each integration page.")}><Users size={17}/></button><span className="os-avatar">G</span></div></header>
+   <header className="os-top"><button className="os-menu" onClick={()=>setMobile(true)} aria-label="Open menu"><Menu/></button><div className="os-breadcrumb">NATHA META OS <span>/</span> {section}</div><div className="os-top-right">{demoMode&&<span className="os-status pending">Demo mode</span>}<span className={"os-status "+backend}><i/>{backend==="checking"?"Checking":backend==="online"?"Backend online":"Backend offline"}</span><button className="os-help" onClick={()=>notify("Use the setup steps shown on each integration page.")}><Users size={17}/></button><span className="os-avatar">G</span></div></header>
    <div className="os-content">
     <div className="os-page-head"><div><div className="os-kicker">GKFXL · CONTROL CENTER</div><h1>{section}</h1><p>{current.desc}</p></div><div className="os-live-pill"><span/> AUTHENTICATED WORKSPACE</div></div>
     {error&&<div className="os-error" role="alert">{error}<button onClick={()=>setError("")}><X size={14}/></button></div>}
@@ -208,7 +218,7 @@ function App(){
     </>}
     {section==="Instagram accounts"&&<div className="os-panel os-feature"><span className="os-feature-icon"><Instagram size={27}/></span><div className="os-kicker">OFFICIAL META AUTHORIZATION</div><h2>Instagram professional accounts</h2><p>Connect your Instagram professional account through Meta’s official authorization. Your access token is encrypted on the server and never shown in this website.</p>
      {workspace.accounts.length?workspace.accounts.map(a=><div className="os-health-row" key={a.id}><span>@{a.username}</span><b className={a.status==="connected"?"good":"pending"}>{a.status}</b></div>):<div className="os-empty-inline">No Instagram account is connected yet.</div>}
-     <button className="os-primary" onClick={()=>void connectInstagram()} disabled={oauthBusy}><LockKeyhole size={16}/>{oauthBusy?" Opening Meta…":" Connect with Meta"}</button><p className="os-note">You will choose the Facebook Page linked to your Instagram professional account. No password or token needs to be pasted here.</p>
+     <button className="os-primary" onClick={()=>void connectInstagram()} disabled={oauthBusy||demoMode}><LockKeyhole size={16}/>{oauthBusy?" Opening Meta…":" Connect with Meta"}</button><p className="os-note">You will choose the Facebook Page linked to your Instagram professional account. No password or token needs to be pasted here.</p>
     </div>}
     {section==="DM Inbox"&&<div className="os-inbox-layout"><section className="os-panel"><div className="os-panel-head"><div><h3>Conversations</h3><p>{workspace.conversations.length} stored conversations</p></div><button className="os-refresh" onClick={()=>void refreshWorkspace()}>Refresh</button></div>
      {workspace.conversations.length?workspace.conversations.map(c=><button key={c.id} className={"os-conversation "+((activeConversation?.id===c.id)?"selected":"")} onClick={()=>setSelectedConversation(c.id)}><b>{c.username||c.ig_scoped_user_id}</b><small>{c.last_message_at?stamp(c.last_message_at):"No recent message"}</small></button>):<div className="os-empty-inline">Your inbox is empty. Connect Instagram and configure webhooks to receive messages.</div>}
@@ -216,13 +226,13 @@ function App(){
     {section==="AI Assistant"&&<div className="os-panel os-feature"><span className="os-feature-icon"><Bot size={27}/></span><div className="os-kicker">ASSISTANT CONFIGURATION</div><h2>Response behaviour</h2><p>Set the guidance NATHA uses to draft responses. Automatic replies are disabled while the approval workflow is being completed.</p>
      <label className="os-field">Assistant instructions<textarea value={instructions} onChange={e=>setInstructions(e.target.value)} rows={5} placeholder="Reply in the customer's language. Keep responses concise. Never invent order or payment details."/></label>
      <div className="os-health-row"><span>Require human approval</span><b className="good">Always on</b></div><div className="os-health-row"><span>Automatic sending</span><b className="pending">Disabled</b></div>
-     <button className="os-primary" onClick={()=>void saveAssistant()}>Save assistant settings</button>
+     <button className="os-primary" onClick={()=>void saveAssistant()} disabled={demoMode}>Save assistant settings</button>
     </div>}
     {section==="Approval Centre"&&<section className="os-panel"><div className="os-panel-head"><div><h3>Approval queue</h3><p>Review AI reply and content drafts before anything is sent</p></div><span className="os-count">{pending.length} pending</span></div>
      {workspace.approvals.length?workspace.approvals.map(item=><article className="os-approval" key={item.id}><div className="os-approval-head"><span className="os-kind">{item.kind.replace("_"," ")}</span><b className={"approval-status "+item.status}>{item.status}</b></div><p>{String(item.payload?.message||item.payload?.caption||"No preview text")}</p><small>{stamp(item.created_at)}</small>{item.status==="pending"&&<div className="os-approval-actions"><button className="os-secondary" onClick={()=>void reviewApproval(item,"rejected")}>Reject</button><button className="os-primary" onClick={()=>void reviewApproval(item,"approved")}>Approve draft</button></div>}{item.status==="approved"&&<div className="os-note">Approved. Sending remains paused until the secure sender is enabled.</div>}</article>):<div className="os-empty-inline">No pending approvals. New DM suggestions and post drafts will appear here.</div>}
     </section>}
     {section==="Content Studio"&&<div className="os-panel os-feature"><span className="os-feature-icon"><FileImage size={27}/></span><div className="os-kicker">CONTENT DRAFTS</div><h2>Prepare a post for review</h2><p>Create a caption draft and send it to the approval queue. Publishing stays disabled until Meta publishing permissions and the approval sender are verified.</p>
-     <form onSubmit={createDraft} className="os-draft-form"><label className="os-field">Post caption<textarea rows={5} value={draftCaption} onChange={e=>setDraftCaption(e.target.value)} placeholder="Write your Instagram caption…" required/></label><button className="os-primary" disabled={!workspace.accounts.some(a=>a.status==="connected")||!draftCaption.trim()}><ShieldCheck size={16}/> Save as pending draft</button></form>
+     <form onSubmit={createDraft} className="os-draft-form"><label className="os-field">Post caption<textarea rows={5} value={draftCaption} onChange={e=>setDraftCaption(e.target.value)} placeholder="Write your Instagram caption…" required/></label><button className="os-primary" disabled={demoMode||!workspace.accounts.some(a=>a.status==="connected")||!draftCaption.trim()}><ShieldCheck size={16}/> Save as pending draft</button></form>
      {!workspace.accounts.some(a=>a.status==="connected")&&<p className="os-note">Connect an Instagram account before creating a publishing draft.</p>}
     </div>}
     {section==="Analytics"&&<><div className="os-stats"><div className="os-stat"><div>Conversations<Users size={17}/></div><strong>{workspace.conversations.length}</strong><small>Stored in this workspace</small></div><div className="os-stat"><div>Inbound messages<MessageCircle size={17}/></div><strong>{workspace.messages.filter(m=>m.direction==="inbound").length}</strong><small>Latest 200 messages</small></div><div className="os-stat"><div>Outbound messages<MessageSquareText size={17}/></div><strong>{workspace.messages.filter(m=>m.direction==="outbound").length}</strong><small>Latest 200 messages</small></div><div className="os-stat"><div>Approved drafts<CheckCircle2 size={17}/></div><strong>{workspace.approvals.filter(a=>a.status==="approved").length}</strong><small>Awaiting send integration</small></div></div><div className="os-panel os-empty"><BarChart3 size={32}/><h2>Meta Insights not connected</h2><p>Reach, impressions and engagement will be shown after Instagram OAuth and Insights permissions are approved.</p></div></>}
