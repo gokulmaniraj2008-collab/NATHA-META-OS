@@ -85,7 +85,8 @@ async function finishOAuth(request, env) {
   const longUrl = new URL("https://graph.instagram.com/access_token");
   longUrl.searchParams.set("grant_type", "ig_exchange_token"); longUrl.searchParams.set("client_secret", env.INSTAGRAM_APP_SECRET); longUrl.searchParams.set("access_token", shortData.access_token);
   const longResponse = await fetch(longUrl), longData = await longResponse.json();
-  const accessToken = longResponse.ok && longData.access_token ? longData.access_token : shortData.access_token;
+  if (!longResponse.ok || !longData.access_token) return redirect({ instagram_oauth: "error", reason: "long_token_exchange" });
+  const accessToken = longData.access_token;
   const profileUrl = new URL("https://graph.instagram.com/" + API_VERSION + "/me");
   profileUrl.searchParams.set("fields", "user_id,username"); profileUrl.searchParams.set("access_token", accessToken);
   const profileResponse = await fetch(profileUrl), profile = await profileResponse.json();
@@ -115,7 +116,7 @@ async function processInstagramEvent(payload, env) {
     for (const change of entry?.changes || []) if (change?.field === "messages") { const v=change.value||{}; events.push({ sender:v.sender?.id, recipient:v.recipient?.id, message:v.message, timestamp:v.timestamp }); }
     for (const event of events) {
       const sender = String(event.sender || ""), recipient = String(event.recipient || ""), msg = event.message || {};
-      const body = typeof msg.text === "string" ? msg.text.trim() : "";
+      const body = typeof msg.text === "string" && msg.text.trim() ? msg.text.trim() : (msg.attachments?.length ? "[Customer sent an attachment]" : "");
       const messageId = String(msg.mid || msg.id || "");
       if (!sender || !messageId || !body || msg.is_echo || sender === instagramId || recipient !== instagramId) continue;
       const timestampMs = Number(event.timestamp || Date.now()); const eventDate = new Date(timestampMs < 1e12 ? timestampMs*1000 : timestampMs);
@@ -123,7 +124,6 @@ async function processInstagramEvent(payload, env) {
       const conversationRows = await db("natha_conversations?on_conflict=instagram_account_id,ig_scoped_user_id", env, { method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=representation"}, body:JSON.stringify({ organization_id:account.organization_id, instagram_account_id:account.id, ig_scoped_user_id:sender, status:"open", last_message_at:eventDate.toISOString(), updated_at:new Date().toISOString() }) });
       const conversation = conversationRows?.[0]; if (!conversation) continue;
       const savedMessages = await db("natha_messages?on_conflict=external_message_id", env, { method:"POST", headers:{Prefer:"resolution=ignore-duplicates,return=representation"}, body:JSON.stringify({ organization_id:account.organization_id, conversation_id:conversation.id, external_message_id:messageId, direction:"inbound", sender_id:sender, body, delivery_status:"received", sent_at:eventDate.toISOString() }) });
-      if (!savedMessages?.length) continue;
       try {
         const suggestion = await generateReply(body, env);
         const expiresAt = new Date(eventDate.getTime()+24*60*60*1000).toISOString();
