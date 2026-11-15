@@ -68,19 +68,37 @@ export async function refreshSession(session: AuthSession) {
 }
 
 export function saveSession(session: AuthSession) {
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  // Keep the session across browser restarts; Supabase refresh tokens renew it.
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  // Remove any older temporary copy after the persistent copy is saved.
+  sessionStorage.removeItem(SESSION_KEY);
 }
 
 export function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
   sessionStorage.removeItem(SESSION_KEY);
 }
 
 export async function getSession(): Promise<AuthSession | null> {
-  const raw = sessionStorage.getItem(SESSION_KEY);
+  // Prefer persistent storage, but migrate an existing session from the old
+  // sessionStorage location so current users do not need to sign in again.
+  let raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) {
+    raw = sessionStorage.getItem(SESSION_KEY);
+    if (raw) {
+      const legacySession = JSON.parse(raw) as AuthSession;
+      if (legacySession.access_token && legacySession.refresh_token) {
+        saveSession(legacySession);
+      }
+    }
+  }
   if (!raw) return null;
   try {
     const session = JSON.parse(raw) as AuthSession;
-    if (!session.access_token || !session.refresh_token) return null;
+    if (!session.access_token || !session.refresh_token) {
+      clearSession();
+      return null;
+    }
     if (session.expires_at && session.expires_at * 1000 < Date.now() + 60_000) {
       return await refreshSession(session);
     }
