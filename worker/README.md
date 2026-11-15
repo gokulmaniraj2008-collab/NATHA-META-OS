@@ -40,6 +40,6 @@ Meta's current Instagram Login API uses `graph.instagram.com`, does not require 
 3. Deploy this Worker only after the frontend and database migration are ready.
 4. Test OAuth with an authorized Instagram professional test account.
 5. Send a real DM only after the user explicitly approves a specific reply in NATHA.
-6. Configure webhook fields and verify a real inbound test message creates a pending approval.
+6. Configure webhook fields and verify a real inbound test message creates a pending approval.\n7. Verify the app owns the conversation before any send test. If Meta Business AI / Conversation Routing owns the thread, wait for the documented handoff event and do not attempt an untagged send.
 
 Do not enable production publishing until a secure media upload path, publishing permissions, approval checks, and end-to-end tests are implemented.
