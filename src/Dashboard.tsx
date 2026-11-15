@@ -3,7 +3,7 @@ import {
   Activity, ArrowDownLeft, ArrowUpRight, Bell, BookOpen, Bot, Check,
   ChevronDown, CircleHelp, Clock3, Download, Filter, Instagram, LayoutDashboard,
   LockKeyhole, LogOut, MessageCircle, MessageSquareText, MoreHorizontal,
-  Plus, Search, Send, Settings, ShieldCheck, Sparkles, ToggleLeft, Users, X, Zap
+  Plus, Plug, Search, Send, Settings, ShieldCheck, Sparkles, ToggleLeft, Users, X, Zap
 } from "lucide-react";
 
 type Props = { onBack: () => void };
