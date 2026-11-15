@@ -81,6 +81,10 @@ function App(){
  const [draftCaption,setDraftCaption]=useState("");
  const [authMessage,setAuthMessage]=useState("");
  const [oauthBusy,setOauthBusy]=useState(false);
+ const [manualUsername,setManualUsername]=useState("");
+ const [manualInstagramId,setManualInstagramId]=useState("");
+ const [manualAccessToken,setManualAccessToken]=useState("");
+ const [manualBusy,setManualBusy]=useState(false);
 
  const notify=(value:string)=>{setNotice(value);window.setTimeout(()=>setNotice(""),4500);};
  const activate=useCallback(async(s:AuthSession)=>{
@@ -183,6 +187,20 @@ function App(){
    window.location.assign(data.authorization_url);
   }catch(err){setError(messageOf(err));setOauthBusy(false);}
  };
+ const connectInstagramManually=async(e:FormEvent)=>{
+  e.preventDefault();
+  if(demoMode){setError("Manual Instagram connection is disabled in demo mode.");return;}
+  if(!session||!organizationId)return;
+  setManualBusy(true);setError("");
+  try{
+   const response=await fetch(backendUrl+"/instagram/manual-connect",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({organization_id:organizationId,username:manualUsername.trim().replace(/^@/,""),instagram_user_id:manualInstagramId.trim(),access_token:manualAccessToken.trim()})});
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok||!data.connected)throw new Error(data.error||"Manual connection service is not available yet. Your token was not saved.");
+   setManualAccessToken("");setManualInstagramId("");setManualUsername("");
+   notify("Instagram account verified and connected.");await refreshWorkspace();
+  }catch(err){setError(messageOf(err));}
+  finally{setManualBusy(false);}
+ };
  const enterDemo=()=>{
   setDemoMode(true);setSession(null);setUser({id:"demo-user",email:"demo@natha-meta-os.local"});setOrganizationId("demo-workspace");setSection("Overview");setSelectedConversation("demo-conversation");setInstructions("Reply in the customer’s language. Keep responses helpful and concise.");setRequireApproval(true);
   const now=new Date().toISOString();
@@ -227,10 +245,24 @@ function App(){
        <p className="os-note">Data is loaded from your authenticated workspace, not preview placeholders.</p>
       </section></div>
     </>}
-    {section==="Instagram accounts"&&<div className="os-panel os-feature"><span className="os-feature-icon"><Instagram size={27}/></span><div className="os-kicker">OFFICIAL META AUTHORIZATION</div><h2>Instagram professional accounts</h2><p>Connect your Instagram professional account through Meta’s official authorization. Your access token is encrypted on the server and never shown in this website.</p>
-     {workspace.accounts.length?workspace.accounts.map(a=><div className="os-health-row" key={a.id}><span>@{a.username}</span><b className={a.status==="connected"?"good":"pending"}>{a.status}</b></div>):<div className="os-empty-inline">No Instagram account is connected yet.</div>}
-     <button className="os-primary" onClick={()=>void connectInstagram()} disabled={oauthBusy||demoMode}><LockKeyhole size={16}/>{oauthBusy?" Opening Meta…":" Connect with Meta"}</button><p className="os-note">You will choose the Facebook Page linked to your Instagram professional account. No password or token needs to be pasted here.</p>
-    </div>}
+    {section==="Instagram accounts"&&<>
+     <div className="os-panel os-feature"><span className="os-feature-icon"><Instagram size={27}/></span><div className="os-kicker">OFFICIAL META AUTHORIZATION</div><h2>Instagram professional accounts</h2><p>Connect with Meta, or enter an Instagram Business Account ID and a valid Meta access token below. Credentials are sent to the secure backend for verification and encryption; they are not saved in this browser.</p>
+      {workspace.accounts.length?workspace.accounts.map(a=><div className="os-health-row" key={a.id}><span>@{a.username}</span><b className={a.status==="connected"?"good":"pending"}>{a.status}</b></div>):<div className="os-empty-inline">No Instagram account is connected yet.</div>}
+      <button className="os-primary" onClick={()=>void connectInstagram()} disabled={oauthBusy||demoMode}><LockKeyhole size={16}/>{oauthBusy?" Opening Meta…":" Connect with Meta"}</button>
+      <p className="os-note">Meta authorization is recommended. Manual connection requires an eligible token with the permissions needed for the Instagram Graph API.</p>
+     </div>
+     <div className="os-panel os-feature">
+      <div className="os-kicker">MANUAL CONNECTION</div><h2>Enter Instagram API details</h2>
+      <p>Use your Instagram professional account ID and a Meta access token. Do not enter your Instagram password. The token will be sent directly to the backend and cleared from this form after a successful verification.</p>
+      <form className="os-draft-form" onSubmit={connectInstagramManually}>
+       <label className="os-field">Instagram username<input value={manualUsername} onChange={e=>setManualUsername(e.target.value)} placeholder="@GKFXL" autoComplete="off" required/></label>
+       <label className="os-field">Instagram Business Account ID<input value={manualInstagramId} onChange={e=>setManualInstagramId(e.target.value)} placeholder="Numeric Instagram account ID" inputMode="numeric" autoComplete="off" required/></label>
+       <label className="os-field">Meta access token<input type="password" value={manualAccessToken} onChange={e=>setManualAccessToken(e.target.value)} placeholder="Paste access token" autoComplete="new-password" required/></label>
+       <button className="os-primary" disabled={demoMode||manualBusy||!manualUsername.trim()||!manualInstagramId.trim()||!manualAccessToken.trim()}><LockKeyhole size={16}/>{manualBusy?" Verifying securely…":" Verify and connect account"}</button>
+      </form>
+      <p className="os-note">Connection is shown as active only after the backend verifies the token against Meta and stores it encrypted. Never paste the token into chat or a public repository.</p>
+     </div>
+    </>}
     {section==="DM Inbox"&&<div className="os-inbox-layout"><section className="os-panel"><div className="os-panel-head"><div><h3>Conversations</h3><p>{workspace.conversations.length} stored conversations</p></div><button className="os-refresh" onClick={()=>void refreshWorkspace()}>Refresh</button></div>
      {workspace.conversations.length?workspace.conversations.map(c=><button key={c.id} className={"os-conversation "+((activeConversation?.id===c.id)?"selected":"")} onClick={()=>setSelectedConversation(c.id)}><b>{c.username||c.ig_scoped_user_id}</b><small>{c.last_message_at?stamp(c.last_message_at):"No recent message"}</small></button>):<div className="os-empty-inline">Your inbox is empty. Connect Instagram and configure webhooks to receive messages.</div>}
     </section><section className="os-panel os-chat-panel"><h3>{activeConversation?.username||"Message thread"}</h3><p>Conversation history</p>{activeMessages.length?activeMessages.map(m=><div key={m.id} className={"os-message "+m.direction}><span>{m.body||"Attachment"}</span><small>{stamp(m.created_at)}</small></div>):<div className="os-empty-inline">Select a conversation to read its messages.</div>}<p className="os-note">Reply sending is disabled until the backend approval sender is fully connected.</p></section></div>}
