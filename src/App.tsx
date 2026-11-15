@@ -107,8 +107,32 @@ function App(){
  useEffect(()=>{if(session&&organizationId)void refreshWorkspace();},[session,organizationId,refreshWorkspace]);
  useEffect(()=>{let active=true;fetch(backendUrl+"/health").then(r=>{if(!r.ok)throw Error();return r.json();}).then(d=>{if(active&&d?.bot==="NATHA AI"&&d?.status==="online")setBackend("online");else if(active)setBackend("offline");}).catch(()=>{if(active)setBackend("offline");});return()=>{active=false;};},[]);
 
+ // Keep workspace navigation in browser history so Android's Back button
+ // returns to the previously opened NATHA section instead of leaving the app.
+ useEffect(()=>{
+  const validSections=nav.map(item=>item.name) as Section[];
+  const currentState=window.history.state;
+  if(!currentState?.nathaMetaOs){
+   window.history.replaceState({nathaMetaOs:true,section:"Overview"},"");
+  }
+  const handlePopState=(event:PopStateEvent)=>{
+   const previous=event.state?.nathaMetaOs&&validSections.includes(event.state.section)
+    ? event.state.section as Section
+    : "Overview";
+   setSection(previous);
+   setMobile(false);
+  };
+  window.addEventListener("popstate",handlePopState);
+  return()=>window.removeEventListener("popstate",handlePopState);
+ },[]);
  const current=nav.find(n=>n.name===section)!;
- const select=(s:Section)=>{setSection(s);setMobile(false);};
+ const select=(s:Section)=>{
+  if(s!==section){
+   window.history.pushState({nathaMetaOs:true,section:s},"");
+   setSection(s);
+  }
+  setMobile(false);
+ };
  const pending=useMemo(()=>workspace.approvals.filter(a=>a.status==="pending"),[workspace.approvals]);
  const activeConversation=workspace.conversations.find(c=>c.id===selectedConversation)||workspace.conversations[0];
  const activeMessages=workspace.messages.filter(m=>m.conversation_id===activeConversation?.id).slice().reverse();
