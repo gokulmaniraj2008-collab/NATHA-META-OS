@@ -39,7 +39,9 @@ export async function signIn(email: string, password: string) {
     headers: headers(undefined, { "Content-Type": "application/json" }),
     body: JSON.stringify({ email, password }),
   });
-  return readJson<AuthSession>(response);
+  const result = await readJson<AuthSession & { expires_in?: number }>(response);
+  if (!result.expires_at && result.expires_in) result.expires_at = Math.floor(Date.now() / 1000) + result.expires_in;
+  return result;
 }
 
 export async function signUp(email: string, password: string) {
@@ -48,7 +50,7 @@ export async function signUp(email: string, password: string) {
     headers: headers(undefined, { "Content-Type": "application/json" }),
     body: JSON.stringify({ email, password }),
   });
-  return readJson<AuthSession & { user?: AuthUser }>(response);
+  const result = await readJson<Partial<AuthSession> & { user?: AuthUser; expires_in?: number }>(response);\n  if (result.access_token && result.refresh_token && !result.expires_at && result.expires_in) result.expires_at = Math.floor(Date.now() / 1000) + result.expires_in;\n  return result;
 }
 
 export async function refreshSession(session: AuthSession) {
@@ -57,7 +59,8 @@ export async function refreshSession(session: AuthSession) {
     headers: headers(undefined, { "Content-Type": "application/json" }),
     body: JSON.stringify({ refresh_token: session.refresh_token }),
   });
-  const next = await readJson<AuthSession>(response);
+  const next = await readJson<AuthSession & { expires_in?: number }>(response);
+  if (!next.expires_at && next.expires_in) next.expires_at = Math.floor(Date.now() / 1000) + next.expires_in;
   saveSession(next);
   return next;
 }
@@ -100,11 +103,11 @@ export async function dbRequest<T = DbRow[]>(
   method = "GET",
   body?: unknown,
 ): Promise<T> {
-  const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
+  const activeSession = session.expires_at && session.expires_at * 1000 < Date.now() + 60_000 ? await refreshSession(session) : session;\n  const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
   Object.entries(query).forEach(([key, value]) => url.searchParams.set(key, value));
   const response = await fetch(url, {
     method,
-    headers: headers(session.access_token, {
+    headers: headers(activeSession.access_token, {
       "Content-Type": "application/json",
       Prefer: "return=representation",
     }),
