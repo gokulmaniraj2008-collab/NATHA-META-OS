@@ -211,6 +211,7 @@ function App(){
    <div className="os-content">
     <div className="os-page-head"><div><div className="os-kicker">GKFXL · CONTROL CENTER</div><h1>{section}</h1><p>{current.desc}</p></div><div className="os-live-pill"><span/> AUTHENTICATED WORKSPACE</div></div>
     {error&&<div className="os-error" role="alert">{error}<button onClick={()=>setError("")}><X size={14}/></button></div>}
+    {instagramFeedback&&<div className={instagramFeedback.kind==="success"?"os-success":"os-error os-feedback"} role={instagramFeedback.kind==="success"?"status":"alert"}>{instagramFeedback.message}<button onClick={()=>setInstagramFeedback(null)} aria-label="Dismiss message"><X size={14}/></button></div>}
     {authMessage&&<div className="os-note">{authMessage}</div>}
     {section==="Overview"&&<>
       <div className="os-welcome"><div><div className="os-kicker">YOUR BUSINESS, ONE WORKSPACE</div><h2>Good to see you.</h2><p>Your workspace is authenticated. Connect an Instagram professional account to activate messaging and insights.</p></div><button className="os-primary" onClick={()=>select("Instagram accounts")}><Instagram size={17}/> Manage Instagram</button></div>
@@ -231,7 +232,6 @@ function App(){
       </section></div>
     </>}
     {section==="Instagram accounts"&&<>
-     {instagramFeedback&&<div className={instagramFeedback.kind==="success"?"os-success":"os-error os-feedback"} role={instagramFeedback.kind==="success"?"status":"alert"}>{instagramFeedback.message}<button onClick={()=>setInstagramFeedback(null)} aria-label="Dismiss message"><X size={14}/></button></div>}
      <div className="os-panel os-feature"><span className="os-feature-icon"><Instagram size={27}/></span><div className="os-kicker">OFFICIAL META AUTHORIZATION</div><h2>Instagram professional accounts</h2><p>Connect your Instagram professional account securely using official Meta authorization. You will review and approve the permissions on Meta before returning here.</p>
       {workspace.accounts.length?workspace.accounts.map(a=><div className="os-health-row" key={a.id}><span>@{a.username}</span><b className={a.status==="connected"?"good":"pending"}>{a.status==="connected"?"Connected successfully":a.status}</b></div>):<div className="os-empty-inline">No Instagram account is connected yet.</div>}
       <button className="os-primary" onClick={()=>void connectInstagram()} disabled={!instagramReady||oauthBusy}><LockKeyhole size={16}/>{oauthBusy?" Opening Instagram…":instagramReady?" Connect Instagram":"Instagram Login setup in progress"}</button>
