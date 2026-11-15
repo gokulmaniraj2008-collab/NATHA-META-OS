@@ -34,3 +34,8 @@ npm run dev
 3. Implement Meta OAuth and per-customer token storage.
 4. Add authenticated API gateway routes and connect the existing Worker safely.
 5. Configure Cloudflare Pages deployment and test end-to-end messaging.
+
+
+## Expanded workspace preview
+
+The feature branch adds navigation for Overview, Inbox, Instagram Accounts, AI Assistant, Knowledge Base, Analytics, Customers, and Settings. All unconnected features are visibly marked as preview-only; no sample inbox message is sent and no fake metrics are presented as live data. See [production readiness](docs/PRODUCTION_READINESS.md) before enabling customer-facing integrations.
