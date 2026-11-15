@@ -1,7 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity, BarChart3, Bot, CheckCircle2, ChevronRight, Command, FileImage,
-  Instagram, LayoutDashboard, LockKeyhole, LogOut, Menu, MessageCircle,
+  Instagram, LayoutDashboard, LockKeyhole, LogOut, Menu, MessageCircle, Eye, EyeOff,
   MessageSquareText, RefreshCw, Settings, ShieldCheck, X, Users
 } from "lucide-react";
 import {
@@ -37,6 +37,7 @@ function AuthGate({onAuthenticated}:{onAuthenticated:(session:AuthSession)=>Prom
  const [mode,setMode]=useState<"signin"|"signup">("signin");
  const [email,setEmail]=useState("");
  const [password,setPassword]=useState("");
+ const [showPassword,setShowPassword]=useState(false);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
  const [info,setInfo]=useState("");
@@ -50,7 +51,7 @@ function AuthGate({onAuthenticated}:{onAuthenticated:(session:AuthSession)=>Prom
   <p>Sign in to manage your Instagram workspace. Your account data is protected by Supabase authentication and organization-level access rules.</p>
   <form onSubmit={submit} className="auth-form">
    <label>Email address<input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" required/></label>
-   <label>Password<input type="password" autoComplete={mode==="signin"?"current-password":"new-password"} value={password} onChange={e=>setPassword(e.target.value)} minLength={8} placeholder="At least 8 characters" required/></label>
+   <label>Password<div className="password-input-wrap"><input type={showPassword?"text":"password"} autoComplete={mode==="signin"?"current-password":"new-password"} value={password} onChange={e=>setPassword(e.target.value)} minLength={8} placeholder="At least 8 characters" required/><button type="button" className="password-visibility" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?"Hide password":"Show password"} aria-pressed={showPassword}>{showPassword?<EyeOff size={17}/>:<Eye size={17}/>}</button></div></label>
    {error&&<div className="auth-error" role="alert">{error}</div>}{info&&<div className="auth-info" role="status">{info}</div>}
    <button className="os-primary auth-submit" disabled={busy}>{busy?"Please wait…":mode==="signin"?"Sign in securely":"Create account"}</button>
   </form>
