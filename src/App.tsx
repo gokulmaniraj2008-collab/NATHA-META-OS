@@ -172,7 +172,18 @@ function App(){
   }catch(err){setError(messageOf(err));}
  };
 
- const connectInstagram=async()=>{\n  if(demoMode){setError("Instagram connection is disabled in demo mode.");return;}\n  if(!session||!organizationId)return;\n  setOauthBusy(true);setError("");\n  try{\n   const response=await fetch(backendUrl+"/oauth/start",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({organization_id:organizationId})});\n   const data=await response.json().catch(()=>({}));\n   if(!response.ok||!data.authorization_url)throw new Error(data.error||"Could not open Meta authorization.");\n   window.location.assign(data.authorization_url);\n  }catch(err){setError(messageOf(err));setOauthBusy(false);}\n };\n const enterDemo=()=>{
+ const connectInstagram=async()=>{
+  if(demoMode){setError("Instagram connection is disabled in demo mode.");return;}
+  if(!session||!organizationId)return;
+  setOauthBusy(true);setError("");
+  try{
+   const response=await fetch(backendUrl+"/oauth/start",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({organization_id:organizationId})});
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok||!data.authorization_url)throw new Error(data.error||"Could not open Meta authorization.");
+   window.location.assign(data.authorization_url);
+  }catch(err){setError(messageOf(err));setOauthBusy(false);}
+ };
+ const enterDemo=()=>{
   setDemoMode(true);setSession(null);setUser({id:"demo-user",email:"demo@natha-meta-os.local"});setOrganizationId("demo-workspace");setSection("Overview");setSelectedConversation("demo-conversation");setInstructions("Reply in the customer’s language. Keep responses helpful and concise.");setRequireApproval(true);
   const now=new Date().toISOString();
   setWorkspace({accounts:[{id:"demo-account",username:"gkfxl_demo",instagram_user_id:"demo-ig",status:"connected"}],conversations:[{id:"demo-conversation",username:"sample_customer",ig_scoped_user_id:"demo-ig-user",status:"open",last_message_at:now}],messages:[{id:"demo-message-1",conversation_id:"demo-conversation",body:"Hi! Can you share more details about your services?",direction:"inbound",delivery_status:"received",created_at:now},{id:"demo-message-2",conversation_id:"demo-conversation",body:"Thanks for reaching out. Our team will be happy to help.",direction:"outbound",delivery_status:"sample",created_at:now}],approvals:[{id:"demo-approval",kind:"dm_reply",payload:{message:"Thanks for your interest! We’ll share the details shortly."},status:"pending",recipient_id:"demo-ig-user",created_at:now,instagram_account_id:"demo-account",conversation_id:"demo-conversation"}],settings:[{id:"demo-settings",auto_reply_enabled:false,require_approval:true,instructions:"Reply in the customer’s language. Keep responses helpful and concise."}]});
