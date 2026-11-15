@@ -24,6 +24,11 @@
 .auth-form label,.os-field{display:grid;gap:7px;color:#c8cad5;font-size:10px}
 .auth-form input,.os-field textarea{width:100%;padding:12px 13px;border:1px solid #ffffff20;border-radius:8px;background:#0b0e17;color:#f4f4fa;font:inherit;font-size:12px;outline:none}
 .auth-form input:focus,.os-field textarea:focus{border-color:#a28aff;box-shadow:0 0 0 3px #a28aff22}
+.password-input-wrap{position:relative;display:flex;align-items:center}
+.password-input-wrap input{padding-right:42px}
+.password-visibility{position:absolute;right:7px;display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:6px;background:transparent;color:#aeb1c2;cursor:pointer}
+.password-visibility:hover{background:#ffffff10;color:#d5caff}
+.password-visibility:focus-visible{outline:2px solid #a28aff;outline-offset:2px}
 .auth-submit{width:100%;margin-top:4px}
 .auth-error,.os-error{padding:11px 12px;border:1px solid #f2777744;border-radius:8px;background:#ff777711;color:#ffaaaa;font-size:10px}
 .auth-info{padding:11px 12px;border:1px solid #7bd5a544;border-radius:8px;background:#7bd5a511;color:#9be0b8;font-size:10px}
