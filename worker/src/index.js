@@ -181,7 +181,7 @@ export default {
   }
   const sendMatch=url.pathname.match(/^\/approvals\/([0-9a-f-]{36})\/send$/i);
   if(sendMatch&&request.method==="POST"){try{return await sendApprovedDm(request,env,sendMatch[1]);}catch(e){console.error("Approved DM send",String(e));return json({error:"Could not process the approved reply."},500);}}
-  if(url.pathname==="/health"&&request.method==="GET")return json({bot:"NATHA AI",status:"online",instagram_login_configured:Boolean(env.INSTAGRAM_APP_ID&&env.INSTAGRAM_APP_SECRET),webhook_configured:Boolean(env.NATHA_VERIFY_TOKEN&&env.INSTAGRAM_APP_SECRET),approval_sender:"approval-gated"});
+  if(url.pathname==="/health"&&request.method==="GET")return json({bot:"NATHA AI",status:"online",instagram_login_configured:Boolean(env.INSTAGRAM_APP_ID&&env.INSTAGRAM_APP_SECRET&&env.SUPABASE_SECRET_KEY),webhook_configured:Boolean(env.NATHA_VERIFY_TOKEN&&env.INSTAGRAM_APP_SECRET&&env.SUPABASE_SECRET_KEY),approval_sender:"approval-gated"});
   if(url.pathname!=="/chat"||request.method!=="POST")return json({bot:"NATHA AI",status:"online",message:"NATHA META OS API"});
   if(!env.AI)return json({error:"Workers AI is not configured."},503);
   const auth=request.headers.get("Authorization")||"",expected=env.NATHA_API_KEY?"Bearer "+env.NATHA_API_KEY:"";
