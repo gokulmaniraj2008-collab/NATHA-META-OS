@@ -4,7 +4,7 @@
   "main": "src/index.js",
   "compatibility_date": "2026-11-15",
   "workers_dev": true,
-  "vars": {
-    "SITE_URL": "https://natha-meta-os.gokulmaniraj2008.workers.dev"
+  "ai": {
+    "binding": "AI"
   }
 }
