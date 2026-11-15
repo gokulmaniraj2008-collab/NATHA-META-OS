@@ -92,7 +92,7 @@ function App(){
    try{
     const filter={select:"*",organization_id:`eq.${organizationId}`};
     const [accounts,conversations,messages,approvals,settings]=await Promise.all([
-     dbRequest<Account[]>("natha_instagram_accounts",{...filter,order:"created_at.desc"},session),
+     dbRequest<Account[]>("natha_instagram_accounts",{select:"id,username,instagram_user_id,status",organization_id:`+"`eq.${organizationId}`"+`,order:"created_at.desc"},session),
      dbRequest<Conversation[]>("natha_conversations",{...filter,order:"last_message_at.desc.nullslast",limit:"100"},session),
      dbRequest<Message[]>("natha_messages",{...filter,order:"created_at.desc",limit:"200"},session),
      dbRequest<Approval[]>("natha_approvals",{...filter,order:"created_at.desc",limit:"100"},session),
