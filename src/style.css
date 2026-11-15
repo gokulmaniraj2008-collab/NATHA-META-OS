@@ -60,3 +60,10 @@
 .os-draft-form{margin-top:16px}
 .os-logout{margin-top:15px}
 @media(max-width:700px){.os-inbox-layout{grid-template-columns:1fr}.auth-card{padding:23px}.os-message{max-width:94%}}
+
+
+/* Accessible show/hide control for authentication password fields */
+.auth-password-wrap{position:relative;display:flex;align-items:center}
+.auth-password-wrap input{padding-right:46px!important}
+.auth-password-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:6px;background:transparent;color:#aeb1c1;cursor:pointer}
+.auth-password-toggle:hover,.auth-password-toggle:focus-visible{color:#cbbdff;background:#9c82ff1b;outline:2px solid #a28aff;outline-offset:1px}
