@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight, ArrowUpRight, Bot, Check, ChevronRight, CircleHelp,
   Command, Instagram, LayoutDashboard, LockKeyhole, Menu, MessageCircle,
@@ -6,11 +6,34 @@ import {
 } from "lucide-react";
 
 type View = "home" | "dashboard";
+type BackendStatus = "checking" | "online" | "offline";
+const API_BASE_URL = "https://natha-ai.gokulmaniraj2008.workers.dev";
 
 function App() {
   const [view, setView] = useState<View>("home");
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  const [backendStatus, setBackendStatus] = useState<BackendStatus>("checking");
+  const [aiEnabled, setAiEnabled] = useState(false);
+
+  const checkBackend = async () => {
+    setBackendStatus("checking");
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`);
+      if (!response.ok) throw new Error("Backend health check failed");
+      const data = await response.json();
+      if (data?.bot !== "NATHA AI" || data?.status !== "online") throw new Error("Unexpected backend response");
+      setAiEnabled(Boolean(data.ai_enabled));
+      setBackendStatus("online");
+    } catch {
+      setAiEnabled(false);
+      setBackendStatus("offline");
+    }
+  };
+
+  useEffect(() => {
+    if (view === "dashboard") void checkBackend();
+  }, [view]);
 
   const openDashboard = () => {
     setView("dashboard");
@@ -121,7 +144,7 @@ function App() {
             <div className="side-help"><CircleHelp size={17} /><span>Need help?<small>Setup guide coming soon</small></span></div>
           </aside>
           <div className="dashboard-main">
-            <div className="welcome-row"><div><h2>Welcome to your workspace</h2><p>Your business overview will appear here.</p></div><div className="avatar">N</div></div>
+            <div className="welcome-row"><div><h2>Welcome to your workspace</h2><p>Your business overview will appear here.</p></div><div className="welcome-actions"><div className={`backend-status ${backendStatus}`}><span className="status-dot" />{backendStatus === "checking" ? "Checking backend…" : backendStatus === "online" ? (aiEnabled ? "NATHA AI online" : "Backend online · AI unavailable") : "Backend offline"}</div><button className="button button-small button-outline" onClick={() => void checkBackend()} disabled={backendStatus === "checking"}>Refresh</button><div className="avatar">N</div></div></div>
             <div className="stat-grid">
               <div className="stat-card"><span>CONNECTED ACCOUNTS</span><strong>—</strong><small>Not connected yet</small><Instagram /></div>
               <div className="stat-card"><span>OPEN CONVERSATIONS</span><strong>—</strong><small>Waiting for setup</small><MessageSquareText /></div>
