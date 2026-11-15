@@ -50,7 +50,9 @@ export async function signUp(email: string, password: string) {
     headers: headers(undefined, { "Content-Type": "application/json" }),
     body: JSON.stringify({ email, password }),
   });
-  const result = await readJson<Partial<AuthSession> & { user?: AuthUser; expires_in?: number }>(response);\n  if (result.access_token && result.refresh_token && !result.expires_at && result.expires_in) result.expires_at = Math.floor(Date.now() / 1000) + result.expires_in;\n  return result;
+  const result = await readJson<Partial<AuthSession> & { user?: AuthUser; expires_in?: number }>(response);
+  if (result.access_token && result.refresh_token && !result.expires_at && result.expires_in) result.expires_at = Math.floor(Date.now() / 1000) + result.expires_in;
+  return result;
 }
 
 export async function refreshSession(session: AuthSession) {
@@ -103,7 +105,8 @@ export async function dbRequest<T = DbRow[]>(
   method = "GET",
   body?: unknown,
 ): Promise<T> {
-  const activeSession = session.expires_at && session.expires_at * 1000 < Date.now() + 60_000 ? await refreshSession(session) : session;\n  const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
+  const activeSession = session.expires_at && session.expires_at * 1000 < Date.now() + 60_000 ? await refreshSession(session) : session;
+  const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
   Object.entries(query).forEach(([key, value]) => url.searchParams.set(key, value));
   const response = await fetch(url, {
     method,
