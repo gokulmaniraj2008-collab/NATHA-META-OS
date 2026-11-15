@@ -70,7 +70,7 @@ async function startOAuth(request, env) {
 }
 async function finishOAuth(request, env) {
   const url = new URL(request.url), code = url.searchParams.get("code"), state = url.searchParams.get("state");
-  if (url.searchParams.has("error")) return redirect({ instagram_oauth: "error", reason: "meta_denied" });
+  if (url.searchParams.has("error")) { console.error("instagram_oauth_failure", JSON.stringify({ stage:"authorization", error:url.searchParams.get("error"), error_reason:url.searchParams.get("error_reason"), error_description:url.searchParams.get("error_description") })); return redirect({ instagram_oauth: "error", reason: "meta_denied" }); }
   if (!code || !state || !env.INSTAGRAM_APP_ID || !env.INSTAGRAM_APP_SECRET) return redirect({ instagram_oauth: "error", reason: "missing_code_or_config" });
   const stateHash = hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(state)));
   const rows = await db("natha_oauth_states?select=*&state_hash=eq." + stateHash + "&expires_at=gt." + encodeURIComponent(new Date().toISOString()) + "&consumed_at=is.null&limit=1", env);
@@ -81,16 +81,16 @@ async function finishOAuth(request, env) {
   form.set("client_id", env.INSTAGRAM_APP_ID); form.set("client_secret", env.INSTAGRAM_APP_SECRET);
   form.set("grant_type", "authorization_code"); form.set("redirect_uri", CALLBACK_URL); form.set("code", code);
   const shortResponse = await fetch("https://api.instagram.com/oauth/access_token", { method: "POST", body: form });
-  const shortData = await shortResponse.json(); if (!shortResponse.ok || !shortData.access_token) return redirect({ instagram_oauth: "error", reason: "token_exchange" });
+  const shortData = await shortResponse.json(); if (!shortResponse.ok || !shortData.access_token) { console.error("instagram_oauth_failure", JSON.stringify({ stage:"short_token_exchange", status:shortResponse.status, error_type:shortData?.error_type || shortData?.type || null, error_code:shortData?.code || null, error_message:shortData?.error_message || shortData?.error?.message || shortData?.error || null })); return redirect({ instagram_oauth: "error", reason: "token_exchange" }); }
   const longUrl = new URL("https://graph.instagram.com/access_token");
   longUrl.searchParams.set("grant_type", "ig_exchange_token"); longUrl.searchParams.set("client_secret", env.INSTAGRAM_APP_SECRET); longUrl.searchParams.set("access_token", shortData.access_token);
   const longResponse = await fetch(longUrl), longData = await longResponse.json();
-  if (!longResponse.ok || !longData.access_token) return redirect({ instagram_oauth: "error", reason: "long_token_exchange" });
+  if (!longResponse.ok || !longData.access_token) { console.error("instagram_oauth_failure", JSON.stringify({ stage:"long_token_exchange", status:longResponse.status, error_type:longData?.error_type || longData?.type || null, error_code:longData?.code || null, error_message:longData?.error?.message || longData?.error_message || null })); return redirect({ instagram_oauth: "error", reason: "long_token_exchange" }); }
   const accessToken = longData.access_token;
   const profileUrl = new URL("https://graph.instagram.com/" + API_VERSION + "/me");
   profileUrl.searchParams.set("fields", "user_id,username"); profileUrl.searchParams.set("access_token", accessToken);
   const profileResponse = await fetch(profileUrl), profile = await profileResponse.json();
-  if (!profileResponse.ok || !(profile.user_id || profile.id)) return redirect({ instagram_oauth: "error", reason: "profile_lookup" });
+  if (!profileResponse.ok || !(profile.user_id || profile.id)) { console.error("instagram_oauth_failure", JSON.stringify({ stage:"profile_lookup", status:profileResponse.status, error_type:profile?.error?.type || null, error_code:profile?.error?.code || null, error_message:profile?.error?.message || null, response_fields:Object.keys(profile || {}) })); return redirect({ instagram_oauth: "error", reason: "profile_lookup" }); }
   const instagramId = String(profile.user_id || profile.id), encrypted = await encryptToken(accessToken, env);
   const existing = await db("natha_instagram_accounts?select=id&organization_id=eq." + encodeURIComponent(saved.organization_id) + "&instagram_user_id=eq." + encodeURIComponent(instagramId) + "&limit=1", env);
   const row = { organization_id: saved.organization_id, instagram_user_id: instagramId, username: profile.username || instagramId, status: "connected", token_ciphertext: encrypted, token_expires_at: new Date(Date.now()+(Number(longData.expires_in)||5184000)*1000).toISOString(), granted_scopes: IG_SCOPES, connected_at: new Date().toISOString(), updated_at: new Date().toISOString() };
