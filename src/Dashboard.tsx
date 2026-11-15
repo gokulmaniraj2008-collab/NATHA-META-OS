@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   Activity, ArrowDownLeft, ArrowUpRight, Bell, BookOpen, Bot, Check,
   ChevronDown, CircleHelp, Clock3, Download, Filter, Instagram, LayoutDashboard,
@@ -26,7 +26,7 @@ const sampleChats = [
   { id: 3, name: "Meera", handle: "@meerastudio", time: "Yesterday", text: "Do you provide custom packages?", unread: false, initials: "M" },
 ];
 
-function Badge({ children, tone = "muted" }: { children: React.ReactNode; tone?: "muted" | "green" | "amber" }) {
+function Badge({ children, tone = "muted" }: { children: ReactNode; tone?: "muted" | "green" | "amber" }) {
   return <span className={`n-badge ${tone}`}>{children}</span>;
 }
 
